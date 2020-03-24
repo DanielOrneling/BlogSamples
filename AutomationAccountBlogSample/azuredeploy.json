@@ -1,0 +1,43 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "accountName": {
+        "type": "string",
+        "defaultValue":"AutomationAccount",
+        "metadata": {
+            "description": "Name of the automation account"
+        }
+        },
+        "location": {
+        "type": "string",
+        "defaultValue": "westeurope",
+        "allowedValues":[
+            "westeurope",
+            "northeurope",
+            "centralus",
+            "eastus",
+            "westus"
+        ],
+        "metadata": {
+                "description": "The location of the automation account"
+            }
+        }
+    },
+    "variables": {},
+    "resources": [
+        {
+            "name": "[parameters('accountName')]",
+            "type": "Microsoft.Automation/automationAccounts",
+            "apiVersion": "2015-10-31",
+            "location": "[parameters('location')]",
+            "tags": {},
+            "properties": {
+                "sku": {
+                    "name": "Free"
+                }
+            }
+        }
+    ],
+    "outputs": {}
+}
