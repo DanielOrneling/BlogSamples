@@ -7,31 +7,18 @@
         "defaultValue":"AutomationAccount",
         "metadata": {
             "description": "Name of the automation account"
-        }
-        },
-        "location": {
-        "type": "string",
-        "defaultValue": "westeurope",
-        "allowedValues":[
-            "westeurope",
-            "northeurope",
-            "centralus",
-            "eastus",
-            "westus"
-        ],
-        "metadata": {
-                "description": "The location of the automation account"
             }
         }
     },
-    "variables": {},
+    "variables": {
+        "location": ["resourceGroup().location"]
+    },
     "resources": [
         {
             "name": "[parameters('accountName')]",
             "type": "Microsoft.Automation/automationAccounts",
             "apiVersion": "2015-10-31",
-            "location": "[parameters('location')]",
-            "tags": {},
+            "location": "[variables('location')]",
             "properties": {
                 "sku": {
                     "name": "Free"

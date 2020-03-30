@@ -2,10 +2,10 @@
 Connect-AzAccount
 
 # Set the values to use for the deployment
-$DeploymentName = "AutomationAccountSample"
-$rgName = "AutomationAccountSample"
+$DeploymentName = "ConcatenateBlogSample"
+$rgName = "ConcatenateBlogSample"
 $location = "westeurope"
-$Subscription = "AzureMSDN"
+$Subscription = "YourSubscriptionNameHere"
 
 # Set the AZ Subscription to work against
 Get-AzSubscription -SubscriptionName $Subscription | Set-AzContext

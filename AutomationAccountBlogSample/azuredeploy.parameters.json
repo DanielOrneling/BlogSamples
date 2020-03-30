@@ -4,9 +4,6 @@
     "parameters": {
         "accountName": {
             "value": "AutomationAccount"
-        },
-        "location": {
-            "value": "westeurope"
         }
     }
 }
