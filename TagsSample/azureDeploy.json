@@ -1,0 +1,75 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "WorkspaceName": {
+        "type": "string",
+        "defaultValue": "Workspace",
+        "metadata": {
+                "description": "The name of the workspace"
+            }
+        },
+        "WorkspaceLocation": {
+        "type": "string",
+        "defaultValue": "westeurope",
+        "allowedValues":[
+            "westeurope",
+            "northeurope",
+            "centralus",
+            "eastus",
+            "westus"
+        ],
+        "metadata": {
+                "description": "The location of the Log Analytics workspace"
+            }
+        },
+        "Department": {
+           "type": "string",
+           "defaultValue": "Finance",
+           "metadata": {
+                "description": "The department reponsible for the resource"
+            }
+        },
+        "Environment": {
+           "type": "string",
+           "defaultValue": "Production",
+           "metadata": {
+                "description": "The environment the resource resides in"
+            }
+        },
+        "Owner": {
+           "type": "string",
+           "defaultValue": "Daniel Örneling",
+           "metadata": {
+                "description": "The owner of the resource"
+            }
+        }                      
+    },
+    "variables": {
+        "License": "free",
+        "workspaceName": "[concat(parameters('WorkspaceName'), '-', parameters('Department'), '-001')]"
+    },
+    "resources": [
+        {
+            "name": "[variables('workspaceName')]",
+            "type": "Microsoft.OperationalInsights/workspaces",
+            "apiVersion": "2015-11-01-preview",
+            "location": "[parameters('WorkspaceLocation')]",
+            "tags": {
+                "Department": "[parameters('Department')]",
+                "Environment": "[parameters('Environment')]",
+                "Owner": "[parameters('Owner')]"
+            },            
+            "properties": {
+                "sku": {
+                    "name": "[variables('License')]"
+                },
+                "features": {
+                    "searchVersion": 1
+                }
+            },
+            "resources":[]
+        }                                	                                                        
+    ],
+    "outputs": {}
+}
