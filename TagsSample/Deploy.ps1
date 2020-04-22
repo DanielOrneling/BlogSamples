@@ -2,8 +2,8 @@
 Connect-AzAccount
 
 # Set the values to use for the deployment
-$DeploymentName = "ConcatenateBlogSample"
-$rgName = "ConcatenateBlogSample"
+$DeploymentName = "TagsBlogSample"
+$rgName = "TagsBlogSample"
 $location = "westeurope"
 $Subscription = "YourSubscriptionNameHere"
 
