@@ -1,0 +1,62 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "WorkspaceName": {
+        "type": "string",
+        "defaultValue": "Workspace",
+        "metadata": {
+                "description": "The name of the workspace"
+            }
+        },
+        "WorkspaceLocation": {
+        "type": "string",
+        "defaultValue": "westeurope",
+        "allowedValues":[
+            "westeurope",
+            "northeurope",
+            "centralus",
+            "eastus",
+            "westus"
+        ],
+        "metadata": {
+                "description": "The location of the Log Analytics workspace"
+            }
+        },
+        "Tags": {
+            "type": "object",
+              "defaultvalue": {
+                    "Department": "Finance",
+                    "Environment": "Prod",
+                    "Owner": "Daniel Örneling"
+            }
+        }                         
+    },
+    "variables": {
+        "License": "free",
+        "workspaceName": "[concat(parameters('WorkspaceName'), '-', parameters('Tags').Department, '-001')]"
+    },
+    "resources": [
+        {
+            "name": "[variables('workspaceName')]",
+            "type": "Microsoft.OperationalInsights/workspaces",
+            "apiVersion": "2015-11-01-preview",
+            "location": "[parameters('WorkspaceLocation')]",
+            "tags": {
+                "Department": "[parameters('Tags').Department]",
+                "Environment": "[parameters('Tags').Environment]",
+                "Owner": "[parameters('Tags').Owner]"
+            },
+            "properties": {
+                "sku": {
+                    "name": "[variables('License')]"
+                },
+                "features": {
+                    "searchVersion": 1
+                }
+            },
+            "resources":[]
+        }                                	                                                        
+    ],
+    "outputs": {}
+}
