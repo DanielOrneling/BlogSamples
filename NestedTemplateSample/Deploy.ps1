@@ -1,10 +1,9 @@
 # Connect to Azure
 Connect-AzAccount
 
-
 # Set the values to use for the deployment
-$DeploymentName = "AzureMonitorDeployment1337"
-$rgName = "AzureMonitor1337"
+$DeploymentName = "NestedTemplateDemo"
+$rgName = "NestedTemplateDemo"
 $location = "westeurope"
 $Subscription = "AzureMSDN"
 
