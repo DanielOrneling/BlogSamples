@@ -5,7 +5,7 @@ Connect-AzAccount
 $DeploymentName = "NestedTemplateDemo"
 $rgName = "NestedTemplateDemo"
 $location = "westeurope"
-$Subscription = "AzureMSDN"
+$Subscription = "YourSubscriptionNameHere"
 
 # Set the AZ Subscription to work against
 Get-AzSubscription -SubscriptionName $Subscription | Set-AzContext
