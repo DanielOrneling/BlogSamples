@@ -22,20 +22,29 @@
         "metadata": {
                 "description": "The location of the Log Analytics workspace"
             }
-        },      
+        },
+        "emailRecipient": {
+        "type": "object",
+            "defaultvalue": {
+                "recipientName": "The name of the recipient",
+                "recipientMailAddress": "An e-mail address"
+            }
+        },              
         "Tags": {
             "type": "object",
               "defaultvalue": {
                     "Department": "Finance",
                     "Environment": "Prod",
-                    "Owner": "Daniel Örneling"
+                    "Owner": "Your Name"
             }
         }               
     },
     "variables": {
         "License": "free",
         "workspaceName": "[concat(parameters('WorkspaceName'), '-', parameters('Tags').Department, '-001')]",
-        "QueriesLink": "https://ornelingdevevelopment.blob.core.windows.net/armtemplates/AzureMonitor/Queries/ServerQueries.json"
+        "actionGroupName": "[concat(parameters('WorkspaceName'), '-', parameters('Tags').Department, '-AG')]",
+        "actionGroupShortName": "[concat(parameters('WorkspaceName'), '-AG')]",
+        "QueriesAlertsLink": "https://ornelingdevevelopment.blob.core.windows.net/armtemplates/AzureMonitor/Alerts/QueriesAlerts.json"
     },
     "resources": [
         {
@@ -292,25 +301,52 @@
                 }
             },
             {
-                "type": "Microsoft.Resources/deployments",
-                "apiVersion": "2017-05-10",
-                "name": "nestedTemplate",
+                "type": "Microsoft.Insights/actionGroups",
+                "apiVersion": "2018-03-01",
+                "name": "[variables('actionGroupName')]",
+                "location": "Global",
                 "dependsOn": [
                     "[concat('Microsoft.OperationalInsights/workspaces/',variables('workspaceName'))]"
                 ],                  
                 "properties": {
+                    "groupShortName": "[variables('actionGroupShortName')]",
+                    "enabled": true,
+                    "smsReceivers": [],
+                    "emailReceivers": [
+                    {
+                        "name": "[parameters('emailRecipient').recipientName]",
+                        "emailAddress": "[parameters('emailRecipient').recipientMailAddress]"
+                    }
+                    ],
+                    "webhookReceivers": []
+                }
+            },             
+            {
+                "type": "Microsoft.Resources/deployments",
+                "apiVersion": "2017-05-10",
+                "name": "nestedTemplateAlerts",
+                "dependsOn": [
+                    "[concat('Microsoft.OperationalInsights/workspaces/',variables('workspaceName'))]"
+                ],                   
+                "properties": {
                     "mode": "Incremental",
                     "templateLink": {
-                        "uri":"[variables('QueriesLink')]",
+                        "uri":"[variables('QueriesAlertsLink')]",
                         "contentVersion":"1.0.0.0"
                     },
                     "parameters": {
-                        "WorkSpaceName": {
+                        "workspaceName": {
                             "value": "[variables('workspaceName')]"
-                        }
+                        },
+                        "WorkspaceLocation": {
+                            "value": "[parameters('WorkspaceLocation')]"
+                        },
+                        "actionGroupName": {
+                            "value": "[variables('actionGroupName')]"
+                        }                                                                                                          
                     }
                 }
-            }            
+            }          
         ]
         }                             	                                                        
     ],

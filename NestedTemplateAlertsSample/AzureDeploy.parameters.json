@@ -8,11 +8,17 @@
         "WorkspaceLocation": {
             "value": "westeurope"
         },
+        "emailRecipient": {
+            "value":{
+                "recipientName": "The name of the recipient",
+                "recipientMailAddress": "An e-mail address"
+            }   
+        },        
         "Tags": {
             "value":{
-                "Department": "HumanResources",
+                "Department": "Finance",
                 "Environment": "Prod",
-                "Owner": "Daniel Örneling"
+                "Owner": "Your Name"
             }   
         }
     }

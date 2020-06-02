@@ -2,10 +2,10 @@
 Connect-AzAccount
 
 # Set the values to use for the deployment
-$DeploymentName = "NestedTemplateDemo"
-$rgName = "NestedTemplateDemo"
+$DeploymentName = "DeployMonitorAlerts"
+$rgName = "AzureMonitor"
 $location = "westeurope"
-$Subscription = "YourSubscriptionNameHere"
+$Subscription = "YourSubscruptionNameHere"
 
 # Set the AZ Subscription to work against
 Get-AzSubscription -SubscriptionName $Subscription | Set-AzContext
@@ -18,4 +18,4 @@ New-AzResourceGroupDeployment `
 -Name $DeploymentName `
 -ResourceGroupName $rgName `
 -TemplateFile .\azuredeploy.json `
--TemplateParameterFile .\azuredeploy.parameters.json
+-TemplateParameterFile .\AzureDeploy.parameters.json

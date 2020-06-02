@@ -1,0 +1,279 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "WorkSpaceName": {
+           "type": "string"
+        },        
+        "WorkspaceLocation": {
+           "type": "string"
+        },       
+        "actionGroupName": {
+             "type": "string"
+        }    
+    },
+    "variables": {
+        "workspaceId": "[resourceId('Microsoft.OperationalInsights/workspaces',parameters('workspaceName'))]",
+        "actionGroupId": "[resourceId('Microsoft.Insights/actionGroups',parameters('actionGroupName'))]"
+    },
+    "resources": [
+        {
+            "type":"Microsoft.Insights/scheduledQueryRules",
+            "name":"Error and Critical Events",
+            "apiVersion": "2018-04-16",
+            "location": "[parameters('WorkspaceLocation')]",
+            "properties":{
+                "description": "Error and Critical Events",
+                "enabled": "true",
+                "source": {
+                    "query": "Event \r\n| where EventLevelName == \r\n\"Error\"",
+                    "dataSourceId": "[variables('workspaceId')]",
+                    "queryType":"ResultCount"
+                },
+                "schedule":{
+                    "frequencyInMinutes": 15,
+                    "timeWindowInMinutes": 60
+                },
+                "action":{
+                    "odata.type": "Microsoft.WindowsAzure.Management.Monitoring.Alerts.Models.Microsoft.AppInsights.Nexus.DataContracts.Resources.ScheduledQueryRules.AlertingAction",
+                    "severity": "4",
+                    "aznsAction":{
+                        "actionGroup": "[array(variables('actionGroupId'))]",
+                        "emailSubject": "Alert mail subject",
+                        "customWebhookPayload":"{ \"alertname\":\"#alertrulename\", \"IncludeSearchResults\":true }"
+                    },
+                    "trigger":{
+                        "thresholdOperator": "GreaterThan",
+                        "threshold": 1
+                    }
+                }
+            }
+        },
+        {
+            "type":"Microsoft.Insights/scheduledQueryRules",
+            "name":"Check Restarted Servers",
+            "apiVersion": "2018-04-16",
+            "location": "[parameters('WorkspaceLocation')]",
+            "properties":{
+                "description": "Check Restarted Servers",
+                "enabled": "true",
+                "source": {
+                    "query": "Event \r\n| where EventLog == \"System\" and Source == \"User32\" and EventID == 1074 \r\n| where TimeGenerated > now(-24h)",
+                    "dataSourceId": "[variables('workspaceId')]",
+                    "queryType":"ResultCount"
+                },
+                "schedule":{
+                    "frequencyInMinutes": 1440,
+                    "timeWindowInMinutes": 1440
+                },
+                "action":{
+                    "odata.type": "Microsoft.WindowsAzure.Management.Monitoring.Alerts.Models.Microsoft.AppInsights.Nexus.DataContracts.Resources.ScheduledQueryRules.AlertingAction",
+                    "severity": "4",
+                    "aznsAction":{
+                        "actionGroup": "[array(variables('actionGroupId'))]",
+                        "emailSubject": "Alert mail subject",
+                        "customWebhookPayload":"{ \"alertname\":\"#alertrulename\", \"IncludeSearchResults\":true }"
+                    },
+                    "trigger":{
+                        "thresholdOperator": "GreaterThan",
+                        "threshold": 1
+                    }
+                }
+            }
+        },
+        {
+            "type":"Microsoft.Insights/scheduledQueryRules",
+            "name":"Check Pending Reboots",
+            "apiVersion": "2018-04-16",
+            "location": "[parameters('WorkspaceLocation')]",
+            "properties":{
+                "description": "Check Pending Reboots",
+                "enabled": "true",
+                "source": {
+                    "query": "Event \r\n| where EventLog == \"Setup\" and Source == \"Servicing\" and EventID == 4 \r\n| where TimeGenerated > now(-24h)",
+                    "dataSourceId": "[variables('workspaceId')]",
+                    "queryType":"ResultCount"
+                },
+                "schedule":{
+                    "frequencyInMinutes": 1440,
+                    "timeWindowInMinutes": 1440
+                },
+                "action":{
+                    "odata.type": "Microsoft.WindowsAzure.Management.Monitoring.Alerts.Models.Microsoft.AppInsights.Nexus.DataContracts.Resources.ScheduledQueryRules.AlertingAction",
+                    "severity": "4",
+                    "aznsAction":{
+                        "actionGroup": "[array(variables('actionGroupId'))]",
+                        "emailSubject": "Alert mail subject",
+                        "customWebhookPayload":"{ \"alertname\":\"#alertrulename\", \"IncludeSearchResults\":true }"
+                    },
+                    "trigger":{
+                        "thresholdOperator": "GreaterThan",
+                        "threshold": 1
+                    }
+                }
+            }
+        },
+        {
+            "type":"Microsoft.Insights/scheduledQueryRules",
+            "name":"Low Memory",
+            "apiVersion": "2018-04-16",
+            "location": "[parameters('WorkspaceLocation')]",
+            "properties":{
+                "description": "Low Memory",
+                "enabled": "true",
+                "source": {
+                    "query": "let _minAvailableMB = 256;\nlet _sampleInterval = 4h;\nlet _linuxMem = Perf\n| where TimeGenerated >= ago(_sampleInterval)\n| where CounterName == \"Available MBytes Memory\"\n| summarize mtgPerf=max(TimeGenerated), CounterValue=avg(CounterValue), SampleCount=count(CounterValue) by Computer\n| join kind=inner\n(\n    Heartbeat\n    | where OSType == \"Linux\"\n    | summarize max(TimeGenerated) by Computer\n)\non Computer\n| project Computer, mtgPerf, AvailableMBytes=round(CounterValue), SampleCount;\nlet _windowsMem = Perf\n| where TimeGenerated >= ago(_sampleInterval)\n| where CounterName == \"Available MBytes\"\n//and ObjectName == \"Logical Disk\"\n\n//and InstanceName matches regex \"/.*\"\n| summarize mtgPerf=max(TimeGenerated), CounterValue=avg(CounterValue), SampleCount=count(CounterValue) by Computer\n| join kind=inner\n(\n    Heartbeat\n    | where OSType == \"Windows\"\n    | summarize max(TimeGenerated) by Computer\n)\non Computer\n| project Computer, mtgPerf, AvailableMBytes=round(CounterValue), SampleCount;\n_linuxMem\n| union _windowsMem\n| where AvailableMBytes < _minAvailableMB\n| project       Computer      , TimeGenerated=mtgPerf      , CounterValue=AvailableMBytes       , AlertType_s = \"Low Available Memory\"      , Severity = 4      , SeverityName_s = \"WARNING\"      , AffectedCI_s = strcat(Computer, \"/FreeMemoryMB/\")      , AlertTitle_s = strcat(Computer, \": Low Available Memory\")      , AlertDetails_s = strcat(\"Computer: \", Computer, \"\\r\\nAverage Free Memory: \", AvailableMBytes, \" MB\\r\\nSample Period: Last \", _sampleInterval, \"\\r\\nSample Count: \", SampleCount, \"\\r\\nAlert Threshold: < \", _minAvailableMB, \" MB\")",
+                    "dataSourceId": "[variables('workspaceId')]",
+                    "queryType":"ResultCount"
+                },
+                "schedule":{
+                    "frequencyInMinutes": 5,
+                    "timeWindowInMinutes": 15
+                },
+                "action":{
+                    "odata.type": "Microsoft.WindowsAzure.Management.Monitoring.Alerts.Models.Microsoft.AppInsights.Nexus.DataContracts.Resources.ScheduledQueryRules.AlertingAction",
+                    "severity": "4",
+                    "aznsAction":{
+                        "actionGroup": "[array(variables('actionGroupId'))]",
+                        "emailSubject": "Alert mail subject",
+                        "customWebhookPayload":"{ \"alertname\":\"#alertrulename\", \"IncludeSearchResults\":true }"
+                    },
+                    "trigger":{
+                        "thresholdOperator": "GreaterThan",
+                        "threshold": 1
+                    }
+                }
+            }
+        },
+        {
+            "type":"Microsoft.Insights/scheduledQueryRules",
+            "name":"Unexpected shutdowns",
+            "apiVersion": "2018-04-16",
+            "location": "[parameters('WorkspaceLocation')]",
+            "properties":{
+                "description": "Unexpected shutdowns",
+                "enabled": "true",
+                "source": {
+                    "query": "Event \n| where EventLog == \"System\" and EventID == 6008 \r\n| project Computer, TimeGenerated, AlertType_s = \"Unexpected shutdown\", Severity = 4, SeverityName_s = \"WARNING\", AffectedCI_s = strcat(Computer), AlertTitle_s = strcat(Computer, \": Unexpected Shutdown\"), AlertDetails_s = strcat(\"Multiple shutdowns detected in the past 24 hours\\r\\nEventID: 6008\\r\\nEvent Description: \", RenderedDescription)",
+                    "dataSourceId": "[variables('workspaceId')]",
+                    "queryType":"ResultCount"
+                },
+                "schedule":{
+                    "frequencyInMinutes": 1440,
+                    "timeWindowInMinutes": 1440
+                },
+                "action":{
+                    "odata.type": "Microsoft.WindowsAzure.Management.Monitoring.Alerts.Models.Microsoft.AppInsights.Nexus.DataContracts.Resources.ScheduledQueryRules.AlertingAction",
+                    "severity": "4",
+                    "aznsAction":{
+                        "actionGroup": "[array(variables('actionGroupId'))]",
+                        "emailSubject": "Alert mail subject",
+                        "customWebhookPayload":"{ \"alertname\":\"#alertrulename\", \"IncludeSearchResults\":true }"
+                    },
+                    "trigger":{
+                        "thresholdOperator": "GreaterThan",
+                        "threshold": 1
+                    }
+                }
+            }
+        },
+        {
+            "type":"Microsoft.Insights/scheduledQueryRules",
+            "name":"Low Disk Space Windows",
+            "apiVersion": "2018-04-16",
+            "location": "[parameters('WorkspaceLocation')]",
+            "properties":{
+                "description": "Low Disk Space Windows",
+                "enabled": "true",
+                "source": {
+                    "query": "let _minValue = 10; Perf \n| where TimeGenerated >= ago(1h) \n| where CounterValue <= _minValue \n| where CounterName == \"% Free Space\" and InstanceName in (\"C:\", \";D:\", \"E:\", \"F:\", \"G:\", \"H:\")  \n| summarize mtgPerf=max(TimeGenerated), CounterValue=max(CounterValue) by Computer, InstanceName, CounterName, ObjectName, DriveLetter=replace(@\"(\\w).\",@\"\\1\", InstanceName) | join kind=inner (Heartbeat \n| where OSType == \"Windows\" \n| summarize max(TimeGenerated) by Computer) on Computer \n| project Computer, ObjectName, CounterName, InstanceName, TimeGenerated=mtgPerf, round(CounterValue)     , DriveLetter     , AlertType_s = \"Windows Low Disk Space\"     , Severity = 3     , SeverityName_s = \"WARNING\"     , AffectedCI_s = strcat(Computer, \"/\", DriveLetter)     , AlertTitle_s = strcat(Computer, \": Low Disk Space on Drive \", DriveLetter)     , AlertDetails_s = strcat(\"Computer: \", Computer, \"\\r\\nDrive Letter: \", DriveLetter, \"\\r\\nPercent Free Space: \", round(CounterValue), \"%\\r\\nAlert Threshold: <= \", _minValue, \"%\")\n| distinct Computer, ObjectName, CounterName, InstanceName, TimeGenerated, CounterValue, DriveLetter, AlertType_s, SeverityName_s, AffectedCI_s, AlertTitle_s, AlertDetails_s",
+                    "dataSourceId": "[variables('workspaceId')]",
+                    "queryType":"ResultCount"
+                },
+                "schedule":{
+                    "frequencyInMinutes": 5,
+                    "timeWindowInMinutes": 15
+                },
+                "action":{
+                    "odata.type": "Microsoft.WindowsAzure.Management.Monitoring.Alerts.Models.Microsoft.AppInsights.Nexus.DataContracts.Resources.ScheduledQueryRules.AlertingAction",
+                    "severity": "4",
+                    "aznsAction":{
+                        "actionGroup": "[array(variables('actionGroupId'))]",
+                        "emailSubject": "Alert mail subject",
+                        "customWebhookPayload":"{ \"alertname\":\"#alertrulename\", \"IncludeSearchResults\":true }"
+                    },
+                    "trigger":{
+                        "thresholdOperator": "GreaterThan",
+                        "threshold": 1
+                    }
+                }
+            }
+        },
+        {
+            "type":"Microsoft.Insights/scheduledQueryRules",
+            "name":"High CPU Usage",
+            "apiVersion": "2018-04-16",
+            "location": "[parameters('WorkspaceLocation')]",
+            "properties":{
+                "description": "High CPU Usage",
+                "enabled": "true",
+                "source": {
+                    "query": "let _maxValue = 85; let _timeWindow = 4h; let _AvgCpu = Perf \n| where TimeGenerated >= ago(_timeWindow) \n| where CounterName == \"% Processor Time\" and InstanceName =~ \"_Total\" \n| summarize mtgPerf=max(TimeGenerated), CounterValue=round(avg(CounterValue)), SampleCount=count(CounterValue) by Computer, InstanceName, CounterName, ObjectName; _AvgCpu \n| where CounterValue > _maxValue \n| project Computer, ObjectName, CounterName, InstanceName, TimeGenerated=mtgPerf, CounterValue, AlertType_s = \"Sustained High CPU Utilization\", Severity = 4, SeverityName_s = \"WARNING\", AffectedCI_s = strcat(Computer, \"/CPUPercent/\", InstanceName), AlertTitle_s = strcat(Computer, \": Sustained High CPU Utilization\"), AlertDetails_s = strcat(\"Computer: \", Computer, \"\\r\\nAverage CPU Utilization: \", CounterValue, \"%\\r\\nSample Period: Last \", _timeWindow, \"\\r\\nSample Count: \", SampleCount, \"\\r\\nAlert Threshold: > \", _maxValue, \"%\")",
+                    "dataSourceId": "[variables('workspaceId')]",
+                    "queryType":"ResultCount"
+                },
+                "schedule":{
+                    "frequencyInMinutes": 5,
+                    "timeWindowInMinutes": 15
+                },
+                "action":{
+                    "odata.type": "Microsoft.WindowsAzure.Management.Monitoring.Alerts.Models.Microsoft.AppInsights.Nexus.DataContracts.Resources.ScheduledQueryRules.AlertingAction",
+                    "severity": "4",
+                    "aznsAction":{
+                        "actionGroup": "[array(variables('actionGroupId'))]",
+                        "emailSubject": "Alert mail subject",
+                        "customWebhookPayload":"{ \"alertname\":\"#alertrulename\", \"IncludeSearchResults\":true }"
+                    },
+                    "trigger":{
+                        "thresholdOperator": "GreaterThan",
+                        "threshold": 1
+                    }
+                }
+            }
+        },
+        {
+            "type":"Microsoft.Insights/scheduledQueryRules",
+            "name":"NTFS - File System Corrupt",
+            "apiVersion": "2018-04-16",
+            "location": "[parameters('WorkspaceLocation')]",
+            "properties":{
+                "description": "NTFS - File System Corrupt",
+                "enabled": "true",
+                "source": {
+                    "query": "Event \n| where EventLog == \"System\" and Source == \"DISK\" or Source == \"Ntfs\" and EventID == 55 \n| project Computer, TimeGenerated, AlertType_s = \"NTFS - File System Corrupt\", Severity = 4, SeverityName_s = \"WARNING\", AffectedCI_s = Computer, AlertTitle_s = strcat(Computer, \": NTFS - File System Corrupt\"), AlertDetails_s = strcat(\"Event Description:\\r\\n\", RenderedDescription)",
+                    "dataSourceId": "[variables('workspaceId')]",
+                    "queryType":"ResultCount"
+                },
+                "schedule":{
+                    "frequencyInMinutes": 1440,
+                    "timeWindowInMinutes": 1440
+                },
+                "action":{
+                    "odata.type": "Microsoft.WindowsAzure.Management.Monitoring.Alerts.Models.Microsoft.AppInsights.Nexus.DataContracts.Resources.ScheduledQueryRules.AlertingAction",
+                    "severity": "4",
+                    "aznsAction":{
+                        "actionGroup": "[array(variables('actionGroupId'))]",
+                        "emailSubject": "Alert mail subject",
+                        "customWebhookPayload":"{ \"alertname\":\"#alertrulename\", \"IncludeSearchResults\":true }"
+                    },
+                    "trigger":{
+                        "thresholdOperator": "GreaterThan",
+                        "threshold": 1
+                    }
+                }
+            }
+        }
+    ],
+    "outputs": {},
+    "functions": []
+}
